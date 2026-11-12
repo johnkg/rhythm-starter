@@ -1,0 +1,8 @@
+# time_ms,lane[,duration_ms]   lane is 0-based (0 = leftmost)
+time_ms,lane,duration_ms
+2000,0
+2500,1
+3000,2,1000
+3500,3
+4000,0
+4500,1,1000

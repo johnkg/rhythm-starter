@@ -1,0 +1,14 @@
+{
+  "songs": [
+    {
+      "id": "demo",
+      "title": "Demo Song",
+      "artist": "Placeholder",
+      "bpm": 120,
+      "audio": "Audio/demo",
+      "chart": "demo",
+      "level": 1,
+      "previewStart": 0
+    }
+  ]
+}

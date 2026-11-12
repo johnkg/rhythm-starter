@@ -1,0 +1,23 @@
+osu file format v14
+
+[General]
+AudioFilename: song.mp3
+Mode: 3
+
+[Metadata]
+Title:Example Song
+Artist:Someone
+
+[Difficulty]
+CircleSize:4
+
+[TimingPoints]
+0,500,4,1,0,100,1,0
+
+[HitObjects]
+64,192,2000,1,0,0:0:0:0:
+192,192,2500,1,0,0:0:0:0:
+320,192,3000,128,0,4000:0:0:0:0:
+448,192,3500,1,0,0:0:0:0:
+64,192,4000,1,0,0:0:0:0:
+192,192,4500,128,0,5500:0:0:0:0:
