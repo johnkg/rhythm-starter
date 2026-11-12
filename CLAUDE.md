@@ -18,6 +18,20 @@ Web timing work in progress: `SmoothClock` + `AudioTimeline` (audio position mod
 JS key timestamps, hit stats / F3 overlay and note pooling are not built yet.
 All UI is throwaway IMGUI.
 
+## Build and deploy (how to test without a Unity editor)
+
+No Unity editor in cloud sessions. The loop is: change code, run the local tests, push, let GitHub Actions build.
+
+- `.github/workflows/ci.yml`: tests, then WebGL build with GameCI (`buildMethod: RhythmCI.BuildWebGL`), then GitHub Pages on `main`.
+  Live: https://johnkg.github.io/rhythm-starter/ . Other branches: build only, artifact `webgl-build`.
+- `Assets/Editor/RhythmCI.cs` runs `RhythmSetup.BuildAll()` (scenes are generated, not committed) and builds the player.
+- Check a run: `gh run list --limit 5`, `gh run view <id> --log-failed`. Unity compile errors show up there: fix those first.
+- Unity version: `ProjectSettings/ProjectVersion.txt`. Packages: `Packages/manifest.json`. `ProjectSettings.asset` must keep
+  `activeInputHandler: 1` (Input System), or the scene builder refuses to run.
+- New Unity editor API used in `Assets/Editor`? Add a fake to `Tools/LogicTests/EditorStubs.cs`.
+- The owner must have set secrets `UNITY_LICENSE`, `UNITY_EMAIL`, `UNITY_PASSWORD` and Pages source = GitHub Actions (README, Deployment).
+  Without the secrets the web build is skipped with a warning, tests still run.
+
 ## Layout
 
 - `Assets/Scripts/` runtime code. `Assets/Editor/RhythmSetup.cs` scene builder. `Assets/Resources/` songs.json, charts, audio.
@@ -63,6 +77,8 @@ in the stubs, add it there (fake, minimal). Stubs prove compile-level correctnes
 - Transcriber is tested with synthetic audio only. Real songs: expect half/double tempo picks and a rough melody.
   Constant tempo assumed. `ONSET_BIAS_SEC` in `rhythm.py` was measured on clicks; real drums may sit a few ms off.
 
+- The CI pipeline itself has not completed a real run: Unity version image, license step, project settings upgrade
+  (copied from a Unity 2021 template, upgraded by Unity 6 on first import) and the build script are all unverified.
 - Scene builder untested in a real editor. Manual wiring steps are in README.
 - Pause/resume audio lock (`AudioSource.Pause`) may drift a few ms.
 - Tap sound latency depends on DSP buffer (set Best Latency). Test in a build, not the editor.

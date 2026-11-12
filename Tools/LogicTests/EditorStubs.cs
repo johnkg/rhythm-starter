@@ -14,7 +14,17 @@ namespace UnityEditor
     public static class EditorUtility { public static bool DisplayDialog(string a,string b,string c){return true;} }
     public class SerializedProperty { public UnityEngine.Object objectReferenceValue; }
     public class SerializedObject { public SerializedObject(UnityEngine.Object o){} public SerializedProperty FindProperty(string n){return null;} public bool ApplyModifiedPropertiesWithoutUndo(){return true;} }
-    public class EditorBuildSettingsScene { public EditorBuildSettingsScene(string p,bool e){} }
+    public class EditorBuildSettingsScene { public string path; public bool enabled; public EditorBuildSettingsScene(string p,bool e){path=p;enabled=e;} }
+    public static class EditorApplication { public static int ExitCode=-1; public static void Exit(int code){ExitCode=code;} }
+    public enum BuildTarget { StandaloneWindows64, WebGL }
+    public enum BuildOptions { None }
+    public enum WebGLCompressionFormat { Brotli, Gzip, Disabled }
+    public struct BuildPlayerOptions { public string[] scenes; public string locationPathName; public BuildTarget target; public BuildOptions options; }
+    public static class PlayerSettings {
+        public static bool runInBackground;
+        public static class WebGL { public static WebGLCompressionFormat compressionFormat; public static bool decompressionFallback; }
+    }
+    public static class BuildPipeline { public static Build.Reporting.BuildReport BuildPlayer(BuildPlayerOptions o){return new Build.Reporting.BuildReport();} }
     public static class EditorBuildSettings { public static EditorBuildSettingsScene[] scenes; }
 }
 namespace UnityEditor.SceneManagement
@@ -24,4 +34,10 @@ namespace UnityEditor.SceneManagement
     public static class EditorSceneManager {
         public static UnityEngine.SceneManagement.Scene NewScene(NewSceneSetup s, NewSceneMode m){return new UnityEngine.SceneManagement.Scene();}
         public static bool SaveScene(UnityEngine.SceneManagement.Scene s,string p){return true;} }
+}
+namespace UnityEditor.Build.Reporting
+{
+    public enum BuildResult { Unknown, Succeeded, Failed, Cancelled }
+    public struct BuildSummary { public BuildResult result; public int totalErrors; public ulong totalSize; }
+    public class BuildReport { public BuildSummary summary; }
 }

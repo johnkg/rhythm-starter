@@ -1,0 +1,133 @@
+# Every push: run the logic tests, build the game for the web, and (on main) publish it.
+# Live game: https://johnkg.github.io/rhythm-starter/
+#
+# One-time setup by the repository owner (see README, "Deployment"):
+#   1. Secrets UNITY_LICENSE, UNITY_EMAIL, UNITY_PASSWORD  (free Unity Personal license)
+#   2. Settings > Pages > Source = GitHub Actions
+# Until the secrets exist, the web build is skipped and only the tests run.
+name: Build and deploy
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    name: Logic tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends mono-mcs mono-runtime ffmpeg
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install numpy scipy reportlab
+      - name: C# logic tests (compile every script against Unity stubs, then simulations)
+        run: bash Tools/LogicTests/run.sh
+      - name: Chart converter tests
+        run: python3 -m unittest test_chartconvert
+        working-directory: Tools/ChartConvert
+      - name: Transcriber tests
+        run: python3 -m unittest test_transcribe
+        working-directory: Tools/Transcribe
+
+  webgl:
+    name: WebGL build
+    needs: tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    outputs:
+      built: ${{ steps.done.outputs.built }}
+    steps:
+      - name: Check for the Unity license secret
+        id: license
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+        run: |
+          if [ -z "$UNITY_LICENSE" ]; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Web build skipped: secret UNITY_LICENSE is not set. See README, section Deployment."
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.license.outputs.ready == 'true'
+
+      # Unity's import cache. Saves several minutes on every build after the first.
+      - uses: actions/cache@v4
+        if: steps.license.outputs.ready == 'true'
+        with:
+          path: Library
+          key: Library-WebGL-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
+          restore-keys: |
+            Library-WebGL-
+
+      - name: Build with Unity
+        if: steps.license.outputs.ready == 'true'
+        uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          targetPlatform: WebGL            # Unity version comes from ProjectSettings/ProjectVersion.txt
+          buildMethod: RhythmCI.BuildWebGL
+          allowDirtyBuild: true            # the build creates the scenes, so the checkout is not clean
+
+      - name: Collect the site
+        if: steps.license.outputs.ready == 'true'
+        run: |
+          index="$(sudo find build -name index.html | head -n 1)"
+          if [ -z "$index" ]; then
+            echo "::error::Unity finished but no index.html was found under build/."
+            sudo find build -maxdepth 3 | head -n 50
+            exit 1
+          fi
+          mkdir site
+          sudo cp -r "$(dirname "$index")"/. site/
+          sudo chown -R "$USER" site
+          touch site/.nojekyll
+          du -sh site
+
+      - uses: actions/upload-artifact@v4
+        if: steps.license.outputs.ready == 'true'
+        with:
+          name: webgl-build
+          path: site
+          retention-days: 7
+
+      - uses: actions/upload-pages-artifact@v3
+        if: steps.license.outputs.ready == 'true' && github.ref == 'refs/heads/main'
+        with:
+          path: site
+
+      - id: done
+        if: steps.license.outputs.ready == 'true'
+        run: echo "built=true" >> "$GITHUB_OUTPUT"
+
+  deploy:
+    name: Publish to GitHub Pages
+    needs: webgl
+    if: needs.webgl.outputs.built == 'true' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

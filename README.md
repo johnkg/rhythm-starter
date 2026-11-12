@@ -222,6 +222,42 @@ Handled for web:
 
 Steam timing is the real test: Windows desktop build, DSP buffer = Best Latency, wired headphones.
 
+## Deployment (free, automatic)
+
+Every push to GitHub runs `.github/workflows/ci.yml`:
+
+1. **Logic tests**: C# suites, chart converter, transcriber. A failed test stops the run.
+2. **WebGL build**: Unity runs on GitHub's servers (GameCI), builds the scenes with the same code as the
+   menu **Rhythm > Build Starter Scenes** (`Assets/Editor/RhythmCI.cs`), then builds the web player.
+3. **Publish** (branch `main` only): the build goes to GitHub Pages.
+
+Live game: **https://johnkg.github.io/rhythm-starter/**  
+Other branches build too and keep the result for 7 days as a download (`webgl-build`) on the run page, without publishing.
+Cost: nothing while the repository is public (GitHub Actions and Pages are free for public repositories).
+
+One-time setup, only the repository owner can do it:
+
+1. **Unity license (free Personal)**. On any computer: install Unity Hub, sign in, then Preferences > Licenses > Add >
+   "Get a free personal license" (do this even if a license is already listed, it creates the file). Find the file:
+   Windows `C:\ProgramData\Unity\Unity_lic.ulf`, Mac `/Library/Application Support/Unity/Unity_lic.ulf`,
+   Linux `~/.local/share/unity3d/Unity/Unity_lic.ulf`. You do not need to install a Unity editor for this.
+2. On GitHub: repository **Settings > Secrets and variables > Actions > New repository secret**, three times:
+   `UNITY_LICENSE` = the whole text of that file, `UNITY_EMAIL` = Unity account email, `UNITY_PASSWORD` = Unity account password.
+3. **Settings > Pages > Build and deployment > Source = GitHub Actions**.
+4. **Actions** tab > "Build and deploy" > **Run workflow** (or push any commit).
+
+Until step 2 is done the workflow only runs the tests and says the web build was skipped.
+
+Notes:
+
+- Unity version for the build is in `ProjectSettings/ProjectVersion.txt` (6000.0.36f1, Unity 6). Packages are in `Packages/manifest.json`.
+- First build takes roughly 15 to 30 minutes, later ones less (import cache).
+- Scenes, the note prefab and `.meta` files are created during the build and are not in the repository.
+  Once you open the project in a real Unity editor, commit the `.meta` files it creates.
+- The web build is uncompressed on purpose: GitHub Pages cannot send the headers compressed Unity builds need.
+- This pipeline has not completed a real run yet. The first runs are also the first time the code meets a real
+  Unity compiler, so expect a few rounds of fixes. Failed run logs show the exact Unity error.
+
 ## Gotchas
 
 - Project Settings > Audio > DSP Buffer Size = **Best Latency**.

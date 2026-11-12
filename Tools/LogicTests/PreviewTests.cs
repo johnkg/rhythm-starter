@@ -45,5 +45,6 @@ static class PreviewTests
         Check("volume max", GameSettings.PreviewVolume01, 1);
 
         Console.WriteLine(fails == 0 ? "ALL OK" : fails + " FAILED");
+        if (fails != 0) Environment.Exit(1);   // run.sh and the build server stop on a failed suite
     }
 }

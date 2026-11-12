@@ -45,5 +45,6 @@ static class KeyBindingTests
         Check("speed 1 approach", GameSettings.ApproachSec, 3f);
 
         Console.WriteLine(fails == 0 ? "ALL OK" : fails + " FAILED");
+        if (fails != 0) Environment.Exit(1);   // run.sh and the build server stop on a failed suite
     }
 }
